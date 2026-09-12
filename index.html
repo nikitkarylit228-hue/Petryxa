@@ -33,7 +33,16 @@
         .btn-danger:hover { background:#ff3333; color:#fff; border-color:#ff3333; }
         .btn-primary { background:#003322; border-color:#004433; }
         .btn-primary:hover { background:#00ff88; color:#0a0a0a; }
+        .btn-print { background:#002244; border-color:#003366; }
+        .btn-print:hover { background:#00aaff; color:#fff; border-color:#00aaff; }
         .status { color:#666; font-size:13px; text-align:center; margin-top:12px; padding:10px; background:#0d0d0d; border-radius:12px; border:1px solid #1a1a1a; }
+        @media print {
+            body { background:#fff; color:#000; padding:0; margin:0; }
+            .app { background:#fff; border:none; box-shadow:none; padding:0; border-radius:0; max-width:100%; }
+            .header, .controls, .upload-zone, .info-bar, .status, .btn-group, .btn { display:none !important; }
+            .canvas-wrapper { background:#fff; border:none; padding:0; border-radius:0; overflow:visible; }
+            #pixelCanvas { width:100%; height:auto; max-width:100%; page-break-inside:avoid; border-radius:0; }
+        }
         @media (max-width:700px) { .app { padding:16px; } .header { flex-direction:column; align-items:stretch; } .header h1 { font-size:22px; text-align:center; } .controls { justify-content:center; } .info-bar { flex-direction:column; align-items:stretch; text-align:center; } .btn-group { justify-content:center; } }
     </style>
 </head>
@@ -50,7 +59,7 @@
         <small>JPG, PNG, BMP, WEBP — любое разрешение</small>
         <input type="file" id="fileInput" accept="image/*">
     </div>
-    <div class="canvas-wrapper">
+    <div class="canvas-wrapper" id="printArea">
         <canvas id="pixelCanvas"></canvas>
     </div>
     <div class="info-bar">
@@ -59,6 +68,7 @@
         <span class="stat">🔢 <span class="val" id="cellDisplay">0</span> ячеек</span>
         <span class="stat">🎨 <span class="val" id="levelDisplay">10</span> уровней (0–9)</span>
         <div class="btn-group">
+            <button class="btn btn-print" id="printBtn">🖨️ Печать</button>
             <button class="btn btn-primary" id="saveBtn">💾 Скачать .txt</button>
             <button class="btn" id="copyBtn">📋 Копировать</button>
             <button class="btn btn-danger" id="clearBtn">✕ Очистить</button>
@@ -67,7 +77,7 @@
     <div class="status" id="statusMsg">⚡ Загрузи фото — меняй размер пикселей от 0.5 до 5 см</div>
 </div>
 <script>
-    const fileInput=document.getElementById('fileInput'),uploadZone=document.getElementById('uploadZone'),canvas=document.getElementById('pixelCanvas'),ctx=canvas.getContext('2d'),sizeSlider=document.getElementById('sizeSlider'),sizeValue=document.getElementById('sizeValue'),sizeDisplay=document.getElementById('sizeDisplay'),cellSizeDisplay=document.getElementById('cellSizeDisplay'),cellDisplay=document.getElementById('cellDisplay'),levelDisplay=document.getElementById('levelDisplay'),statusMsg=document.getElementById('statusMsg'),saveBtn=document.getElementById('saveBtn'),copyBtn=document.getElementById('copyBtn'),clearBtn=document.getElementById('clearBtn');let currentMatrix=null,currentWidth=0,currentHeight=0;const LEVELS=10;let targetSizeCm=2.0;
+    const fileInput=document.getElementById('fileInput'),uploadZone=document.getElementById('uploadZone'),canvas=document.getElementById('pixelCanvas'),ctx=canvas.getContext('2d'),sizeSlider=document.getElementById('sizeSlider'),sizeValue=document.getElementById('sizeValue'),sizeDisplay=document.getElementById('sizeDisplay'),cellSizeDisplay=document.getElementById('cellSizeDisplay'),cellDisplay=document.getElementById('cellDisplay'),levelDisplay=document.getElementById('levelDisplay'),statusMsg=document.getElementById('statusMsg'),printBtn=document.getElementById('printBtn'),saveBtn=document.getElementById('saveBtn'),copyBtn=document.getElementById('copyBtn'),clearBtn=document.getElementById('clearBtn');let currentMatrix=null,currentWidth=0,currentHeight=0;const LEVELS=10;let targetSizeCm=2.0;
     sizeSlider.addEventListener('input',()=>{targetSizeCm=parseFloat(sizeSlider.value);sizeValue.textContent=targetSizeCm.toFixed(1);if(currentMatrix){drawPixelMatrix(currentMatrix,currentWidth,currentHeight,targetSizeCm);updateStats()}});
     uploadZone.addEventListener('click',()=>fileInput.click());
     uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.style.borderColor='#00ff88'});
@@ -78,6 +88,7 @@
     function processImage(img){const w=img.width,h=img.height,tempCanvas=document.createElement('canvas');tempCanvas.width=w;tempCanvas.height=h;const tempCtx=tempCanvas.getContext('2d');tempCtx.drawImage(img,0,0);const imageData=tempCtx.getImageData(0,0,w,h),data=imageData.data,step=255/(LEVELS-1),matrix=[];for(let y=0;y<h;y++){const row=[];for(let x=0;x<w;x++){const idx=(y*w+x)*4,gray=0.299*data[idx]+0.587*data[idx+1]+0.114*data[idx+2];let val=Math.round(gray/step);val=Math.min(Math.max(val,0),LEVELS-1);row.push(val)}matrix.push(row)}currentMatrix=matrix;currentWidth=w;currentHeight=h;drawPixelMatrix(matrix,w,h,targetSizeCm);updateStats();statusMsg.textContent=`✅ Готово: ${w}×${h} пикселей, размер ${targetSizeCm.toFixed(1)} см`}
     function drawPixelMatrix(matrix,w,h,sizeCm){let displayW=w,displayH=h;const MAX_DISPLAY=80;if(w>MAX_DISPLAY||h>MAX_DISPLAY){const scale=Math.min(MAX_DISPLAY/w,MAX_DISPLAY/h);displayW=Math.floor(w*scale);displayH=Math.floor(h*scale)}const DPI=96,TARGET_PX=sizeCm/2.54*DPI,cellSize=Math.round(TARGET_PX),canvasSize=cellSize*Math.max(displayW,displayH);canvas.width=canvasSize;canvas.height=canvasSize;canvas.style.width='100%';canvas.style.height='auto';ctx.clearRect(0,0,canvasSize,canvasSize);const palette=[];for(let i=0;i<LEVELS;i++){const v=Math.round(i*(255/(LEVELS-1)));palette.push(`rgb(${v},${v},${v})`)}for(let y=0;y<displayH;y++){for(let x=0;x<displayW;x++){const srcX=Math.floor(x*w/displayW),srcY=Math.floor(y*h/displayH),val=matrix[srcY][srcX],px=x*cellSize,py=y*cellSize;ctx.fillStyle=palette[val];ctx.fillRect(px,py,cellSize,cellSize);ctx.strokeStyle='#1a1a1a';ctx.lineWidth=1.2;ctx.strokeRect(px,py,cellSize,cellSize);const brightness=val*(255/(LEVELS-1));ctx.fillStyle=brightness<128?'#ffffff':'#000000';ctx.font=`bold ${Math.floor(cellSize*0.75)}px 'Segoe UI','Arial',sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor=brightness<128?'#000':'#fff';ctx.shadowBlur=5;ctx.fillText(val,px+cellSize/2,py+cellSize/2+1);ctx.shadowBlur=0}}if(w>displayW||h>displayH){ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,canvasSize-40,canvasSize,40);ctx.fillStyle='#00ff88';ctx.font='15px Segoe UI, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowBlur=0;ctx.fillText(`Показано ${displayW}×${displayH} из ${w}×${h} (полная матрица сохраняется)`,canvasSize/2,canvasSize-20)}const actualCm=(cellSize/DPI*2.54).toFixed(1);cellSizeDisplay.textContent=actualCm+' см'}
     function updateStats(){if(!currentMatrix)return;sizeDisplay.textContent=`${currentWidth}×${currentHeight}`;cellDisplay.textContent=(currentWidth*currentHeight).toLocaleString();levelDisplay.textContent=LEVELS}
+    printBtn.addEventListener('click',()=>{if(!currentMatrix){statusMsg.textContent='⚠️ Сначала загрузи фото';return}window.print()});
     saveBtn.addEventListener('click',()=>{if(!currentMatrix){statusMsg.textContent='⚠️ Сначала загрузи фото';return}const lines=currentMatrix.map(row=>row.join(' ')),output=lines.join('\n'),blob=new Blob([output],{type:'text/plain;charset=utf-8'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`matrix_${currentWidth}x${currentHeight}.txt`;document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(link.href);statusMsg.textContent=`💾 Матрица ${currentWidth}×${currentHeight} сохранена`});
     copyBtn.addEventListener('click',()=>{if(!currentMatrix){statusMsg.textContent='⚠️ Сначала загрузи фото';return}const text=currentMatrix.map(row=>row.join(' ')).join('\n');navigator.clipboard.writeText(text).then(()=>{statusMsg.textContent='📋 Матрица скопирована в буфер'}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);statusMsg.textContent='📋 Матрица скопирована (fallback)'})});
     clearBtn.addEventListener('click',()=>{currentMatrix=null;currentWidth=0;currentHeight=0;ctx.clearRect(0,0,canvas.width,canvas.height);canvas.width=0;canvas.height=0;canvas.style.width='100%';canvas.style.height='auto';sizeDisplay.textContent='0×0';cellSizeDisplay.textContent='0';cellDisplay.textContent='0';statusMsg.textContent='🧹 Очищено. Загрузи новое фото.';fileInput.value=''});
