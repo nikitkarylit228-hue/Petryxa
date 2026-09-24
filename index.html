@@ -3,25 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pixelizer Pro — мм + нумерация + печать</title>
+<title>Pixelizer Pro — мм + печать</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#0a0a0a; color:#eee; font-family:'Segoe UI',system-ui,sans-serif; padding:16px; }
   .app { max-width:1400px; margin:0 auto; background:#141414; border-radius:24px; padding:24px; border:1px solid #2a2a2a; }
   h1 { color:#00ff88; font-weight:600; font-size:24px; margin-bottom:16px; }
   h1 span { color:#444; font-weight:300; }
-  .controls { display:flex; flex-wrap:wrap; gap:16px; align-items:center; background:#1a1a1a; padding:14px 18px; border-radius:16px; border:1px solid #2a2a2a; margin-bottom:20px; }
+  .controls { display:flex; flex-wrap:wrap; gap:20px; align-items:center; background:#1a1a1a; padding:14px 18px; border-radius:16px; border:1px solid #2a2a2a; margin-bottom:20px; }
   .controls label { color:#aaa; font-size:13px; display:flex; align-items:center; gap:8px; }
   .controls input[type="number"] { width:80px; background:#0d0d0d; color:#00ff88; border:1px solid #333; border-radius:8px; padding:6px 10px; font-size:14px; }
-  .controls input[type="range"] { width:180px; accent-color:#00ff88; }
-  .controls .value { color:#00ff88; font-weight:bold; min-width:50px; }
+  .controls input[type="range"] { width:200px; accent-color:#00ff88; }
+  .controls .value { color:#00ff88; font-weight:bold; min-width:60px; }
   .upload-zone { border:2px dashed #2a2a2a; border-radius:20px; padding:30px; text-align:center; cursor:pointer; transition:0.3s; background:#0d0d0d; margin-bottom:20px; }
   .upload-zone:hover { border-color:#00ff88; background:#151515; }
   .upload-zone p { color:#888; font-size:16px; }
   .upload-zone small { color:#444; font-size:12px; }
   .upload-zone input { display:none; }
   .canvas-wrapper { background:#000; border-radius:20px; padding:16px; border:1px solid #222; overflow:auto; text-align:center; }
-  #pixelCanvas { display:block; margin:0 auto; background:#fff; image-rendering:pixelated; max-width:100%; }
+  #pixelCanvas { display:block; margin:0 auto; background:#fff; image-rendering:pixelated; }
   .info-bar { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; margin-top:16px; padding:12px 18px; background:#0d0d0d; border-radius:16px; border:1px solid #1e1e1e; }
   .stat { color:#666; font-size:13px; }
   .stat .val { color:#00ff88; font-weight:600; }
@@ -35,8 +35,6 @@
   .btn-print { background:#002244; border-color:#003366; }
   .btn-print:hover { background:#00aaff; color:#fff; border-color:#00aaff; }
   .status { color:#666; font-size:13px; text-align:center; margin-top:12px; padding:10px; background:#0d0d0d; border-radius:12px; }
-
-  /* === ПЕЧАТЬ === */
   @media print {
     body { background:#fff; color:#000; padding:0; margin:0; }
     .app { background:#fff; border:none; padding:0; max-width:100%; border-radius:0; }
@@ -49,13 +47,16 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>◈ PIXELIZER <span>PRO — мм / нумерация / печать</span></h1>
+    <h1>◈ PIXELIZER <span>PRO — мм / печать</span></h1>
   </div>
 
   <div class="controls">
     <label>📏 Размер пикселя (мм): 
       <input type="range" id="sizeSlider" min="1" max="50" step="1" value="10">
-      <span class="value" id="sizeValue">10</span> мм
+      <span class="value" id="sizeValue">10 мм</span>
+    </label>
+    <label>🔍 Детализация (макс. пикселей): 
+      <input type="number" id="detailInput" min="20" max="300" value="80">
     </label>
     <label>🎨 Уровней серого: 
       <input type="number" id="levelsInput" min="2" max="32" value="10">
@@ -85,7 +86,7 @@
     </div>
   </div>
 
-  <div class="status" id="statusMsg">⚡ Загрузи фото — настрой размер пикселя в мм</div>
+  <div class="status" id="statusMsg">⚡ Загрузи фото → настрой размер пикселя в мм</div>
 </div>
 
 <script>
@@ -93,27 +94,38 @@ const $ = id => document.getElementById(id);
 const fileInput = $('fileInput'), uploadZone = $('uploadZone');
 const canvas = $('pixelCanvas'), ctx = canvas.getContext('2d');
 const sizeSlider = $('sizeSlider'), sizeValue = $('sizeValue');
-const levelsInput = $('levelsInput');
+const detailInput = $('detailInput'), levelsInput = $('levelsInput');
 const sizeDisplay = $('sizeDisplay'), cellSizeDisplay = $('cellSizeDisplay');
 const totalSizeDisplay = $('totalSizeDisplay'), cellDisplay = $('cellDisplay');
 const statusMsg = $('statusMsg');
 const printBtn = $('printBtn'), saveBtn = $('saveBtn'), copyBtn = $('copyBtn'), clearBtn = $('clearBtn');
 
-let currentMatrix = null, currentWidth = 0, currentHeight = 0;
+let currentMatrix = null;
+let currentWidth = 0, currentHeight = 0;
 let cellSizeMm = 10;
 let LEVELS = 10;
-const MAX_DISPLAY = 60;
+let maxPixels = 80;  // максимальная сторона в пикселях
+let originalImage = null;
 
+// ===== РАЗМЕР ПИКСЕЛЯ =======
 sizeSlider.addEventListener('input', () => {
   cellSizeMm = parseFloat(sizeSlider.value);
-  sizeValue.textContent = cellSizeMm;
+  sizeValue.textContent = cellSizeMm + ' мм';
   if (currentMatrix) redraw();
 });
 
+// ===== ДЕТАЛИЗАЦИЯ (сколько пикселей по длинной стороне) =====
+detailInput.addEventListener('change', () => {
+  maxPixels = Math.max(20, Math.min(300, parseInt(detailInput.value) || 80));
+  detailInput.value = maxPixels;
+  if (originalImage) processImage(originalImage);
+});
+
+// ===== УРОВНИ СЕРОГО =====
 levelsInput.addEventListener('change', () => {
   LEVELS = Math.max(2, Math.min(32, parseInt(levelsInput.value) || 10));
   levelsInput.value = LEVELS;
-  if (currentMatrix) statusMsg.textContent = '⚠️ Перезагрузите фото для смены уровней';
+  if (originalImage) processImage(originalImage);
 });
 
 uploadZone.addEventListener('click', () => fileInput.click());
@@ -131,18 +143,33 @@ function handleFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
-    img.onload = () => processImage(img);
+    img.onload = () => { originalImage = img; processImage(img); };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 function processImage(img) {
-  const w = img.width, h = img.height;
+  // ===== МАСШТАБИРУЕМ КАРТИНКУ ДО maxPixels по длинной стороне =====
+  const ratio = img.width / img.height;
+  let w, h;
+  if (img.width >= img.height) {
+    w = maxPixels;
+    h = Math.round(maxPixels / ratio);
+  } else {
+    h = maxPixels;
+    w = Math.round(maxPixels * ratio);
+  }
+
+  // ===== УМЕНЬШАЕМ КАРТИНКУ =====
   const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = w; tempCanvas.height = h;
+  tempCanvas.width = w;
+  tempCanvas.height = h;
   const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.drawImage(img, 0, 0);
+  tempCtx.imageSmoothingEnabled = true;
+  tempCtx.imageSmoothingQuality = 'high';
+  tempCtx.drawImage(img, 0, 0, w, h);
+
   const imageData = tempCtx.getImageData(0, 0, w, h);
   const data = imageData.data;
   const step = 255 / (LEVELS - 1);
@@ -172,18 +199,15 @@ function redraw() {
 }
 
 function drawPixelMatrix(matrix, w, h) {
-  let displayW = w, displayH = h;
-  if (w > MAX_DISPLAY || h > MAX_DISPLAY) {
-    const scale = Math.min(MAX_DISPLAY / w, MAX_DISPLAY / h);
-    displayW = Math.floor(w * scale);
-    displayH = Math.floor(h * scale);
-  }
+  // ===== РАЗМЕР ЯЧЕЙКИ НА ЭКРАНЕ =====
+  // Чем больше cellSizeMm — тем крупнее сетка на экране
+  const cellPx = Math.max(6, Math.min(50, cellSizeMm * 1.2));
+  const fontSize = Math.max(8, Math.floor(cellPx * 0.55));
+  const paddingLeft = Math.max(30, cellSizeMm + 15);
+  const paddingTop = Math.max(30, cellSizeMm + 15);
 
-  const cellPx = 20;
-  const paddingLeft = 40;
-  const paddingTop = 40;
-  const canvasW = paddingLeft + displayW * cellPx;
-  const canvasH = paddingTop + displayH * cellPx;
+  const canvasW = paddingLeft + w * cellPx;
+  const canvasH = paddingTop + h * cellPx;
 
   canvas.width = canvasW;
   canvas.height = canvasH;
@@ -199,51 +223,54 @@ function drawPixelMatrix(matrix, w, h) {
     palette.push(`rgb(${v},${v},${v})`);
   }
 
-  for (let y = 0; y < displayH; y++) {
-    for (let x = 0; x < displayW; x++) {
-      const srcX = Math.floor(x * w / displayW);
-      const srcY = Math.floor(y * h / displayH);
-      const val = matrix[srcY][srcX];
+  // ===== РИСУЕМ ЯЧЕЙКИ =====
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const val = matrix[y][x];
       const px = paddingLeft + x * cellPx;
       const py = paddingTop + y * cellPx;
 
       ctx.fillStyle = palette[val];
       ctx.fillRect(px, py, cellPx, cellPx);
 
-      ctx.strokeStyle = '#cccccc';
+      // рамка ячейки
+      ctx.strokeStyle = '#b0b0b0';
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 0.5, py + 0.5, cellPx - 1, cellPx - 1);
 
-      const brightness = val * (255 / (LEVELS - 1));
-      ctx.fillStyle = brightness < 128 ? '#ffffff' : '#000000';
-      ctx.font = `bold ${Math.floor(cellPx * 0.6)}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(val, px + cellPx / 2, py + cellPx / 2);
+      // цифра внутри (только если ячейка большая)
+      if (cellPx >= 14) {
+        const brightness = val * (255 / (LEVELS - 1));
+        ctx.fillStyle = brightness < 128 ? '#ffffff' : '#000000';
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(val, px + cellPx / 2, py + cellPx / 2);
+      }
     }
   }
 
-  // Нумерация столбцов сверху
+  // ===== НУМЕРАЦИЯ СТОЛБЦОВ СВЕРХУ =====
   ctx.fillStyle = '#000000';
-  ctx.font = 'bold 12px Arial';
+  ctx.font = `bold ${Math.max(9, Math.floor(cellPx * 0.45))}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  for (let x = 0; x < displayW; x++) {
+  for (let x = 0; x < w; x++) {
     const px = paddingLeft + x * cellPx + cellPx / 2;
     ctx.fillText((x + 1).toString(), px, paddingTop / 2);
   }
 
-  // Нумерация строк слева
+  // ===== НУМЕРАЦИЯ СТРОК СЛЕВА =====
   ctx.textAlign = 'right';
-  for (let y = 0; y < displayH; y++) {
+  for (let y = 0; y < h; y++) {
     const py = paddingTop + y * cellPx + cellPx / 2;
-    ctx.fillText((y + 1).toString(), paddingLeft - 5, py);
+    ctx.fillText((y + 1).toString(), paddingLeft - 6, py);
   }
 
-  // Рамка
+  // ===== РАМКА =====
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 2;
-  ctx.strokeRect(paddingLeft, paddingTop, displayW * cellPx, displayH * cellPx);
+  ctx.strokeRect(paddingLeft, paddingTop, w * cellPx, h * cellPx);
 }
 
 function updateStats() {
@@ -256,7 +283,6 @@ function updateStats() {
   cellDisplay.textContent = (currentWidth * currentHeight).toLocaleString();
 }
 
-// === ПЕЧАТЬ ===
 printBtn.addEventListener('click', () => {
   if (!currentMatrix) { statusMsg.textContent = '⚠️ Сначала загрузи фото'; return; }
   window.print();
@@ -282,7 +308,7 @@ copyBtn.addEventListener('click', () => {
 });
 
 clearBtn.addEventListener('click', () => {
-  currentMatrix = null; currentWidth = 0; currentHeight = 0;
+  currentMatrix = null; currentWidth = 0; currentHeight = 0; originalImage = null;
   canvas.width = 0; canvas.height = 0;
   sizeDisplay.textContent = '0×0';
   cellSizeDisplay.textContent = '0';
