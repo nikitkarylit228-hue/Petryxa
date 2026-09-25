@@ -37,10 +37,12 @@
   .btn-print:hover { background:#00aaff; color:#fff; border-color:#00aaff; }
   .status { color:#666; font-size:13px; text-align:center; margin-top:12px; padding:10px; background:#0d0d0d; border-radius:12px; }
   .section-title { color:#00ff88; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; opacity:0.7; }
+  .size-preview { color:#fff; background:#002211; padding:10px 18px; border-radius:12px; border:1px solid #004422; font-size:15px; margin-top:6px; }
+  .size-preview .val { color:#00ff88; font-weight:bold; font-size:20px; }
   @media print {
     body { background:#fff; color:#000; padding:0; margin:0; }
     .app { background:#fff; border:none; padding:0; max-width:100%; border-radius:0; }
-    .header, .controls, .upload-zone, .info-bar, .status { display:none !important; }
+    .header, .controls, .upload-zone, .info-bar, .status, .size-preview, .section-title { display:none !important; }
     .canvas-wrapper { background:#fff; border:none; padding:0; border-radius:0; overflow:visible; }
     #pixelCanvas { width:auto; height:auto; max-width:100%; page-break-inside:avoid; border-radius:0; }
   }
@@ -68,24 +70,11 @@
 
   <div class="section-title">🔢 Нумерация</div>
   <div class="controls">
-    <label>
-      <input type="checkbox" id="showTop" checked> 
-      Верхняя (столбцы)
-    </label>
-    <label>Шаг верх: 
-      <input type="number" id="stepTop" min="1" max="50" value="1">
-    </label>
-    <label>
-      <input type="checkbox" id="showLeft" checked> 
-      Левая (строки)
-    </label>
-    <label>Шаг лево: 
-      <input type="number" id="stepLeft" min="1" max="50" value="1">
-    </label>
-    <label>
-      <input type="checkbox" id="showDigits" checked> 
-      Цифры в ячейках
-    </label>
+    <label><input type="checkbox" id="showTop" checked> Верхняя (столбцы)</label>
+    <label>Шаг верх: <input type="number" id="stepTop" min="1" max="50" value="1"></label>
+    <label><input type="checkbox" id="showLeft" checked> Левая (строки)</label>
+    <label>Шаг лево: <input type="number" id="stepLeft" min="1" max="50" value="1"></label>
+    <label><input type="checkbox" id="showDigits" checked> Цифры в ячейках</label>
   </div>
 
   <div class="upload-zone" id="uploadZone">
@@ -98,10 +87,14 @@
     <canvas id="pixelCanvas"></canvas>
   </div>
 
+  <div class="size-preview" style="text-align:center;">
+    📦 <strong>Реальный размер картины:</strong> 
+    <span class="val" id="realSize">— × — см</span>
+  </div>
+
   <div class="info-bar">
     <span class="stat">📐 Пикселей: <span class="val" id="sizeDisplay">0×0</span></span>
     <span class="stat">📏 1 пиксель = <span class="val" id="cellSizeDisplay">10</span> мм</span>
-    <span class="stat">📦 Размер картины: <span class="val" id="totalSizeDisplay">0 × 0 см</span></span>
     <span class="stat">🔢 Ячеек: <span class="val" id="cellDisplay">0</span></span>
     <div class="btn-group">
       <button class="btn btn-print" id="printBtn">🖨️ Печать</button>
@@ -124,7 +117,7 @@ const showTop = $('showTop'), stepTop = $('stepTop');
 const showLeft = $('showLeft'), stepLeft = $('stepLeft');
 const showDigits = $('showDigits');
 const sizeDisplay = $('sizeDisplay'), cellSizeDisplay = $('cellSizeDisplay');
-const totalSizeDisplay = $('totalSizeDisplay'), cellDisplay = $('cellDisplay');
+const realSize = $('realSize'), cellDisplay = $('cellDisplay');
 const statusMsg = $('statusMsg');
 const printBtn = $('printBtn'), saveBtn = $('saveBtn'), copyBtn = $('copyBtn'), clearBtn = $('clearBtn');
 
@@ -135,13 +128,19 @@ let LEVELS = 8;
 let maxPixels = 60;
 let originalImage = null;
 
-// ===== ОБРАБОТЧИКИ =====
+// ===== ФИКСИРОВАННЫЙ РАЗМЕР ЯЧЕЙКИ НА ЭКРАНЕ =====
+// На экране ячейка всегда ~24 px, независимо от реального размера
+const CELL_PX = 24;
+
+// ===== ПОЛЗУНОК РАЗМЕРА ПИКСЕЛЯ =====
 sizeSlider.addEventListener('input', () => {
   cellSizeMm = parseFloat(sizeSlider.value);
   sizeValue.textContent = cellSizeMm + ' мм';
-  if (currentMatrix) redraw();
+  // НЕ перерисовываем, только обновляем цифры
+  updateStats();
 });
 
+// ===== ОСТАЛЬНЫЕ ОБРАБОТЧИКИ =====
 detailInput.addEventListener('change', () => {
   maxPixels = Math.max(10, Math.min(150, parseInt(detailInput.value) || 60));
   detailInput.value = maxPixels;
@@ -226,9 +225,7 @@ function processImage(img) {
   currentHeight = h;
   redraw();
   updateStats();
-  const totalW = (w * cellSizeMm / 10).toFixed(1);
-  const totalH = (h * cellSizeMm / 10).toFixed(1);
-  statusMsg.textContent = `✅ Готово: ${w}×${h} пикселей → картина ${totalW} × ${totalH} см`;
+  statusMsg.textContent = `✅ Готово: ${w}×${h} пикселей`;
 }
 
 function redraw() {
@@ -237,11 +234,10 @@ function redraw() {
 }
 
 function drawPixelMatrix(matrix, w, h) {
-  // ===== РАЗМЕР ЯЧЕЙКИ НА ЭКРАНЕ =====
-  const cellPx = Math.max(10, Math.min(90, cellSizeMm * 2.5));
-  const fontSize = Math.max(9, Math.floor(cellPx * 0.5));
-  const topPad = showTop.checked ? Math.max(28, cellPx + 6) : 6;
-  const leftPad = showLeft.checked ? Math.max(34, cellPx + 14) : 6;
+  const cellPx = CELL_PX;
+  const fontSize = Math.floor(cellPx * 0.5);
+  const topPad = showTop.checked ? 28 : 6;
+  const leftPad = showLeft.checked ? 34 : 6;
   const rightPad = 6;
   const bottomPad = 6;
 
@@ -250,8 +246,9 @@ function drawPixelMatrix(matrix, w, h) {
 
   canvas.width = canvasW;
   canvas.height = canvasH;
-  canvas.style.width = canvasW + 'px';
-  canvas.style.height = canvasH + 'px';
+  // НЕ задаём style.width/height — пусть будет натуральный размер с прокруткой
+  canvas.style.width = '';
+  canvas.style.height = '';
 
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvasW, canvasH);
@@ -276,7 +273,6 @@ function drawPixelMatrix(matrix, w, h) {
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 0.5, py + 0.5, cellPx - 1, cellPx - 1);
 
-      // Цифра в ячейке
       if (showDigits.checked && cellPx >= 16) {
         const brightness = val * (255 / (LEVELS - 1));
         ctx.fillStyle = brightness < 128 ? '#ffffff' : '#000000';
@@ -291,9 +287,8 @@ function drawPixelMatrix(matrix, w, h) {
   // ===== ВЕРХНЯЯ НУМЕРАЦИЯ =====
   if (showTop.checked) {
     const step = Math.max(1, parseInt(stepTop.value) || 1);
-    const topFontSize = Math.max(9, Math.min(14, Math.floor(cellPx * 0.4)));
     ctx.fillStyle = '#000000';
-    ctx.font = `bold ${topFontSize}px Arial`;
+    ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let x = 0; x < w; x++) {
@@ -302,7 +297,6 @@ function drawPixelMatrix(matrix, w, h) {
       const px = leftPad + x * cellPx + cellPx / 2;
       ctx.fillText(num.toString(), px, topPad / 2);
     }
-    // Верхняя линия
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -314,9 +308,8 @@ function drawPixelMatrix(matrix, w, h) {
   // ===== ЛЕВАЯ НУМЕРАЦИЯ =====
   if (showLeft.checked) {
     const step = Math.max(1, parseInt(stepLeft.value) || 1);
-    const leftFontSize = Math.max(9, Math.min(14, Math.floor(cellPx * 0.4)));
     ctx.fillStyle = '#000000';
-    ctx.font = `bold ${leftFontSize}px Arial`;
+    ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     for (let y = 0; y < h; y++) {
@@ -325,7 +318,6 @@ function drawPixelMatrix(matrix, w, h) {
       const py = topPad + y * cellPx + cellPx / 2;
       ctx.fillText(num.toString(), leftPad - 6, py);
     }
-    // Левая линия
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -346,7 +338,7 @@ function updateStats() {
   cellSizeDisplay.textContent = cellSizeMm;
   const totalW = (currentWidth * cellSizeMm / 10).toFixed(1);
   const totalH = (currentHeight * cellSizeMm / 10).toFixed(1);
-  totalSizeDisplay.textContent = `${totalW} × ${totalH} см`;
+  realSize.textContent = `${totalW} × ${totalH} см`;
   cellDisplay.textContent = (currentWidth * currentHeight).toLocaleString();
 }
 
@@ -379,7 +371,7 @@ clearBtn.addEventListener('click', () => {
   canvas.width = 0; canvas.height = 0;
   sizeDisplay.textContent = '0×0';
   cellSizeDisplay.textContent = '0';
-  totalSizeDisplay.textContent = '0 × 0 см';
+  realSize.textContent = '— × — см';
   cellDisplay.textContent = '0';
   statusMsg.textContent = '🧹 Очищено';
   fileInput.value = '';
