@@ -3,112 +3,462 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pixelizer Pro — финал</title>
+<title>РасКВАДРАсь</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0a0a0a; color:#eee; font-family:'Segoe UI',system-ui,sans-serif; padding:16px; }
-  .app { max-width:1600px; margin:0 auto; background:#141414; border-radius:24px; padding:24px; border:1px solid #2a2a2a; }
-  h1 { color:#00ff88; font-weight:600; font-size:24px; margin-bottom:16px; }
-  h1 span { color:#444; font-weight:300; }
-  .controls { display:flex; flex-wrap:wrap; gap:16px; align-items:center; background:#1a1a1a; padding:14px 18px; border-radius:16px; border:1px solid #2a2a2a; margin-bottom:12px; }
-  .controls label { color:#aaa; font-size:13px; display:flex; align-items:center; gap:8px; }
-  .controls input[type="number"] { width:80px; background:#0d0d0d; color:#00ff88; border:1px solid #333; border-radius:8px; padding:6px 10px; font-size:14px; }
-  .controls input[type="range"] { width:220px; accent-color:#00ff88; }
-  .controls input[type="checkbox"] { accent-color:#00ff88; width:16px; height:16px; }
-  .controls .value { color:#00ff88; font-weight:bold; min-width:70px; font-size:15px; }
-  .upload-zone { border:2px dashed #2a2a2a; border-radius:20px; padding:24px; text-align:center; cursor:pointer; transition:0.3s; background:#0d0d0d; margin-bottom:20px; }
-  .upload-zone:hover { border-color:#00ff88; background:#151515; }
-  .upload-zone p { color:#888; font-size:16px; }
-  .upload-zone small { color:#444; font-size:12px; }
-  .upload-zone input { display:none; }
-  .canvas-wrapper { background:#0a0a0a; border-radius:20px; padding:16px; border:1px solid #222; overflow:auto; text-align:center; }
-  #pixelCanvas { display:block; margin:0 auto; background:#fff; }
-  .info-bar { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; margin-top:16px; padding:12px 18px; background:#0d0d0d; border-radius:16px; border:1px solid #1e1e1e; }
-  .stat { color:#666; font-size:13px; }
-  .stat .val { color:#00ff88; font-weight:600; }
-  .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
-  .btn { background:#222; border:none; color:#ccc; padding:8px 18px; border-radius:12px; cursor:pointer; font-size:13px; font-weight:500; transition:0.2s; border:1px solid #2a2a2a; }
-  .btn:hover { background:#00ff88; color:#0a0a0a; border-color:#00ff88; }
-  .btn-danger { background:#331111; border-color:#441111; }
-  .btn-danger:hover { background:#ff3333; color:#fff; }
-  .btn-primary { background:#003322; border-color:#004433; }
-  .btn-primary:hover { background:#00ff88; color:#0a0a0a; }
-  .btn-print { background:#002244; border-color:#003366; }
-  .btn-print:hover { background:#00aaff; color:#fff; border-color:#00aaff; }
-  .status { color:#666; font-size:13px; text-align:center; margin-top:12px; padding:10px; background:#0d0d0d; border-radius:12px; }
-  .section-title { color:#00ff88; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; opacity:0.7; }
+
+  :root {
+    --accent: #00ff88;
+    --accent-dark: #00cc6a;
+    --bg: #0a0a0a;
+    --panel: #141414;
+    --panel-2: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #eee;
+    --muted: #888;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at top left, rgba(0,255,136,0.07), transparent 45%),
+      radial-gradient(ellipse at bottom right, rgba(0,150,255,0.06), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding: 20px;
+    min-height: 100vh;
+  }
+
+  .app {
+    max-width: 1600px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, #161616 0%, #101010 100%);
+    border-radius: 24px;
+    padding: 28px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+
+  /* ===== ШАПКА С ЛОГО ===== */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+
+  .logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #00ff88 0%, #00b36b 50%, #007744 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,255,136,0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+    flex-shrink: 0;
+    animation: logoPulse 4s ease-in-out infinite;
+  }
+  .logo::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.25), transparent 60%);
+    pointer-events: none;
+  }
+  .logo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 2px;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    z-index: 1;
+  }
+  .logo-grid span {
+    border-radius: 2px;
+    background: #062b16;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .logo-grid span.light { background: #eafff5; }
+  .logo-grid span.mid   { background: #4dffb3; }
+  .logo-grid span.dark  { background: #0a4a2a; }
+
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 8px 24px rgba(0,255,136,0.35), inset 0 1px 0 rgba(255,255,255,0.4); }
+    50%      { box-shadow: 0 8px 32px rgba(0,255,136,0.55), inset 0 1px 0 rgba(255,255,255,0.4); }
+  }
+
+  .header-text h1 {
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,255,136,0.4);
+  }
+  .header-text .sub {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  /* ===== ПАНЕЛИ ===== */
+  .section-title {
+    color: var(--accent);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 0 0 10px 4px;
+    opacity: 0.7;
+    font-weight: 600;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    background: linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+
+  .controls label {
+    color: #aaa;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+
+  .controls input[type="number"] {
+    width: 80px;
+    background: #0d0d0d;
+    color: var(--accent);
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: 0.2s;
+    outline: none;
+  }
+  .controls input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,255,136,0.12);
+  }
+  .controls input[type="range"] {
+    width: 220px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .controls input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+  }
+  .controls .value {
+    color: var(--accent);
+    font-weight: 700;
+    min-width: 72px;
+    font-size: 15px;
+    text-shadow: 0 0 12px rgba(0,255,136,0.4);
+  }
+
+  /* ===== ЗАГРУЗКА ===== */
+  .upload-zone {
+    border: 2px dashed #2a2a2a;
+    border-radius: 18px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.25s;
+    background: linear-gradient(180deg, #0d0d0d 0%, #080808 100%);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at center, rgba(0,255,136,0.08), transparent 70%);
+    opacity: 0;
+    transition: 0.3s;
+  }
+  .upload-zone:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,255,136,0.1);
+  }
+  .upload-zone:hover::before { opacity: 1; }
+  .upload-zone p { color: #bbb; font-size: 15px; font-weight: 500; position: relative; }
+  .upload-zone small { color: #555; font-size: 12px; display: block; margin-top: 6px; position: relative; }
+  .upload-zone input { display: none; }
+
+  /* ===== CANVAS ===== */
+  .canvas-wrapper {
+    background: repeating-linear-gradient(45deg, #0c0c0c 0 10px, #0a0a0a 10px 20px);
+    border-radius: 18px;
+    padding: 0;
+    border: 1px solid #1e1e1e;
+    overflow: hidden;
+    position: relative;
+    height: 75vh;
+    cursor: grab;
+    user-select: none;
+    box-shadow: inset 0 4px 20px rgba(0,0,0,0.6);
+  }
+  .canvas-wrapper.panning { cursor: grabbing; }
+  .canvas-stage {
+    position: absolute;
+    left: 0; top: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+  #pixelCanvas {
+    display: block;
+    background: #fff;
+  }
+
+  /* ===== ИНФО-БАР ===== */
+  .info-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .stat {
+    color: #777;
+    font-size: 12.5px;
+    padding: 5px 10px;
+    background: #0d0d0d;
+    border-radius: 8px;
+    border: 1px solid #1e1e1e;
+    white-space: nowrap;
+  }
+  .stat .val {
+    color: var(--accent);
+    font-weight: 700;
+    margin-left: 2px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .btn {
+    background: linear-gradient(180deg, #252525 0%, #1a1a1a 100%);
+    border: 1px solid #2e2e2e;
+    color: #ccc;
+    padding: 9px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover {
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: #062b16;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0,255,136,0.3);
+  }
+  .btn:active { transform: translateY(0); }
+
+  .btn-primary {
+    background: linear-gradient(180deg, #004d33 0%, #003322 100%);
+    border-color: #005544;
+    color: #66ffbb;
+  }
+  .btn-print {
+    background: linear-gradient(180deg, #003366 0%, #002244 100%);
+    border-color: #004488;
+    color: #66bbff;
+  }
+  .btn-danger {
+    background: linear-gradient(180deg, #441111 0%, #330d0d 100%);
+    border-color: #551515;
+    color: #ff8888;
+  }
+  .btn-danger:hover {
+    background: linear-gradient(180deg, #ff4444 0%, #cc2222 100%);
+    color: #fff;
+    border-color: #ff4444;
+    box-shadow: 0 6px 18px rgba(255,68,68,0.3);
+  }
+
+  /* ===== СТАТУС ===== */
+  .status {
+    color: #777;
+    font-size: 13px;
+    text-align: center;
+    margin-top: 12px;
+    padding: 11px;
+    background: #0d0d0d;
+    border-radius: 12px;
+    border: 1px solid #1a1a1a;
+    transition: 0.2s;
+  }
+
+  /* ===== СТАТИСТИКА ===== */
+  .stats-panel {
+    margin-top: 16px;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    display: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .stats-list { color: #ccc; font-size: 13.5px; line-height: 1.7; }
+  .stats-compact {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #0a0a0a;
+    border-radius: 10px;
+    border: 1px solid #1a1a1a;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: var(--accent);
+    word-break: break-all;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ===== ПЕЧАТЬ ===== */
   @media print {
-    body { background:#fff; color:#000; padding:0; margin:0; }
-    .app { background:#fff; border:none; padding:0; max-width:100%; border-radius:0; }
-    .header, .controls, .upload-zone, .info-bar, .status { display:none !important; }
-    .canvas-wrapper { background:#fff; border:none; padding:0; border-radius:0; overflow:visible; }
-    #pixelCanvas { width:auto; height:auto; max-width:100%; page-break-inside:avoid; border-radius:0; }
+    @page { size: auto; margin: 0; }
+    html, body {
+      margin: 0 !important; padding: 0 !important;
+      background: #fff !important; color: #000 !important;
+      width: 100% !important; height: auto !important;
+    }
+    .header, .controls, .upload-zone, .info-bar, .status,
+    .stats-panel, .section-title, .btn, .btn-group, .logo {
+      display: none !important;
+    }
+    .app {
+      background: #fff !important; border: none !important;
+      padding: 0 !important; margin: 0 !important;
+      max-width: 100% !important; width: 100% !important;
+      border-radius: 0 !important; box-shadow: none !important;
+    }
+    .canvas-wrapper {
+      background: #fff !important; border: none !important;
+      padding: 0 !important; margin: 0 !important;
+      border-radius: 0 !important; overflow: visible !important;
+      position: static !important; width: 100% !important;
+      height: auto !important; max-width: 100% !important;
+      max-height: none !important; display: block !important;
+      box-shadow: none !important;
+    }
+    .canvas-stage {
+      position: static !important; transform: none !important;
+      display: block !important;
+    }
+    #pixelCanvas {
+      display: block !important; margin: 0 auto !important;
+      transform: none !important; width: auto !important;
+      height: auto !important; max-width: 100% !important;
+      max-height: 100vh !important;
+      page-break-inside: avoid !important;
+      page-break-after: avoid !important;
+      border-radius: 0 !important; background: #fff !important;
+    }
   }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="header">
-    <h1>◈ PIXELIZER <span>PRO — финал</span></h1>
+    <div class="logo">
+      <div class="logo-grid">
+        <span class="dark"></span><span class="mid"></span><span class="light"></span>
+        <span class="mid"></span><span class="light"></span><span class="dark"></span>
+        <span class="light"></span><span class="dark"></span><span class="mid"></span>
+      </div>
+    </div>
+    <div class="header-text">
+      <h1>РасКВАДРАсь</h1>
+      <div class="sub">Из фото — в схему. Колёсико — зум, ЛКМ — тащить</div>
+    </div>
   </div>
 
-  <div class="section-title">⚙️ Основные настройки</div>
+  <div class="section-title">⚙️ Настройки</div>
   <div class="controls">
-    <label>📏 Размер пикселя (мм): 
+    <label>📏 Размер пикселя:
       <input type="range" id="sizeSlider" min="1" max="50" step="1" value="10">
       <span class="value" id="sizeValue">10 мм</span>
     </label>
-    <label>🔍 Детализация: 
-      <input type="number" id="detailInput" min="10" max="150" value="60">
+    <label>🔍 Детализация:
+      <input type="number" id="detailInput" min="2" max="200" value="60">
     </label>
-    <label>🎨 Уровней серого: 
-      <input type="number" id="levelsInput" min="2" max="16" value="8">
+    <label>🎨 Оттенков:
+      <input type="number" id="levelsInput" min="2" max="64" value="10">
     </label>
   </div>
 
   <div class="section-title">🔢 Нумерация</div>
   <div class="controls">
-    <label>
-      <input type="checkbox" id="showTop" checked> 
-      Верхняя (столбцы)
-    </label>
-    <label>Шаг верх: 
-      <input type="number" id="stepTop" min="1" max="50" value="1">
-    </label>
-    <label>
-      <input type="checkbox" id="showLeft" checked> 
-      Левая (строки)
-    </label>
-    <label>Шаг лево: 
-      <input type="number" id="stepLeft" min="1" max="50" value="1">
-    </label>
-    <label>
-      <input type="checkbox" id="showDigits" checked> 
-      Цифры в ячейках
-    </label>
+    <label><input type="checkbox" id="showTop" checked> Верхняя</label>
+    <label>Шаг: <input type="number" id="stepTop" min="1" max="50" value="1"></label>
+    <label><input type="checkbox" id="showLeft" checked> Левая</label>
+    <label>Шаг: <input type="number" id="stepLeft" min="1" max="50" value="1"></label>
+    <label><input type="checkbox" id="showDigits" checked> Цифры в ячейках</label>
   </div>
 
   <div class="upload-zone" id="uploadZone">
     <p>📁 Нажми или перетащи фото</p>
-    <small>JPG, PNG, BMP, WEBP</small>
+    <small>JPG, PNG, BMP, WEBP • колёсико — зум • зажми ЛКМ — тащить</small>
     <input type="file" id="fileInput" accept="image/*">
   </div>
 
-  <div class="canvas-wrapper" id="printArea">
-    <canvas id="pixelCanvas"></canvas>
+  <div class="canvas-wrapper" id="canvasWrapper">
+    <div class="canvas-stage" id="canvasStage">
+      <canvas id="pixelCanvas"></canvas>
+    </div>
   </div>
 
   <div class="info-bar">
-    <span class="stat">📐 Пикселей: <span class="val" id="sizeDisplay">0×0</span></span>
-    <span class="stat">📏 1 пиксель = <span class="val" id="cellSizeDisplay">10</span> мм</span>
-    <span class="stat">📦 Размер картины: <span class="val" id="totalSizeDisplay">0 × 0 см</span></span>
-    <span class="stat">🔢 Ячеек: <span class="val" id="cellDisplay">0</span></span>
+    <span class="stat">📐 <span class="val" id="sizeDisplay">0×0</span></span>
+    <span class="stat">📏 1 = <span class="val" id="cellSizeDisplay">10</span> мм</span>
+    <span class="stat">📦 <span class="val" id="totalSizeDisplay">0 × 0 см</span></span>
+    <span class="stat">🎨 <span class="val" id="levelsDisplay">10</span></span>
+    <span class="stat">🔍 <span class="val" id="detailDisplay">60</span></span>
     <div class="btn-group">
       <button class="btn btn-print" id="printBtn">🖨️ Печать</button>
       <button class="btn btn-primary" id="saveBtn">💾 Скачать .txt</button>
       <button class="btn" id="copyBtn">📋 Копировать</button>
       <button class="btn btn-danger" id="clearBtn">✕ Очистить</button>
     </div>
+  </div>
+
+  <div class="stats-panel" id="statsPanel">
+    <div class="section-title">📊 Оттенки</div>
+    <div class="stats-list" id="statsList"></div>
   </div>
 
   <div class="status" id="statusMsg">⚡ Загрузи фото → настрой всё под себя</div>
@@ -124,38 +474,47 @@ const showTop = $('showTop'), stepTop = $('stepTop');
 const showLeft = $('showLeft'), stepLeft = $('stepLeft');
 const showDigits = $('showDigits');
 const sizeDisplay = $('sizeDisplay'), cellSizeDisplay = $('cellSizeDisplay');
-const totalSizeDisplay = $('totalSizeDisplay'), cellDisplay = $('cellDisplay');
+const totalSizeDisplay = $('totalSizeDisplay');
+const levelsDisplay = $('levelsDisplay');
+const detailDisplay = $('detailDisplay');
 const statusMsg = $('statusMsg');
 const printBtn = $('printBtn'), saveBtn = $('saveBtn'), copyBtn = $('copyBtn'), clearBtn = $('clearBtn');
+const statsPanel = $('statsPanel'), statsList = $('statsList');
+const canvasWrapper = $('canvasWrapper');
+const canvasStage = $('canvasStage');
 
 let currentMatrix = null;
 let currentWidth = 0, currentHeight = 0;
 let cellSizeMm = 10;
-let LEVELS = 8;
+let LEVELS = 10;
 let maxPixels = 60;
 let originalImage = null;
+
+let view = { scale: 1, tx: 0, ty: 0 };
 
 // ===== ОБРАБОТЧИКИ =====
 sizeSlider.addEventListener('input', () => {
   cellSizeMm = parseFloat(sizeSlider.value);
   sizeValue.textContent = cellSizeMm + ' мм';
-  if (currentMatrix) redraw();
+  if (currentMatrix) { redraw(); resetView(); }
 });
 
 detailInput.addEventListener('change', () => {
-  maxPixels = Math.max(10, Math.min(150, parseInt(detailInput.value) || 60));
+  maxPixels = Math.max(2, Math.min(200, parseInt(detailInput.value) || 60));
   detailInput.value = maxPixels;
+  detailDisplay.textContent = maxPixels;
   if (originalImage) processImage(originalImage);
 });
 
 levelsInput.addEventListener('change', () => {
-  LEVELS = Math.max(2, Math.min(16, parseInt(levelsInput.value) || 8));
+  LEVELS = Math.max(2, Math.min(64, parseInt(levelsInput.value) || 10));
   levelsInput.value = LEVELS;
+  levelsDisplay.textContent = LEVELS;
   if (originalImage) processImage(originalImage);
 });
 
-showTop.addEventListener('change', () => { if (currentMatrix) redraw(); });
-showLeft.addEventListener('change', () => { if (currentMatrix) redraw(); });
+showTop.addEventListener('change', () => { if (currentMatrix) { redraw(); resetView(); } });
+showLeft.addEventListener('change', () => { if (currentMatrix) { redraw(); resetView(); } });
 showDigits.addEventListener('change', () => { if (currentMatrix) redraw(); });
 stepTop.addEventListener('change', () => {
   stepTop.value = Math.max(1, Math.min(50, parseInt(stepTop.value) || 1));
@@ -187,48 +546,78 @@ function handleFile(file) {
   reader.readAsDataURL(file);
 }
 
-function processImage(img) {
+function calculateGrid(img) {
   const ratio = img.width / img.height;
   let w, h;
   if (img.width >= img.height) {
     w = maxPixels;
-    h = Math.round(maxPixels / ratio);
+    h = Math.max(1, Math.round(maxPixels / ratio));
   } else {
     h = maxPixels;
-    w = Math.round(maxPixels * ratio);
+    w = Math.max(1, Math.round(maxPixels * ratio));
+  }
+  return { w, h };
+}
+
+function processImage(img) {
+  const { w, h } = calculateGrid(img);
+
+  let srcCanvas = document.createElement('canvas');
+  srcCanvas.width  = img.width;
+  srcCanvas.height = img.height;
+  srcCanvas.getContext('2d').drawImage(img, 0, 0);
+
+  let curW = img.width, curH = img.height;
+  let curCanvas = srcCanvas;
+
+  while (curW > w * 2 && curH > h * 2) {
+    const nextW = Math.max(w, Math.floor(curW / 2));
+    const nextH = Math.max(h, Math.floor(curH / 2));
+    const tmp = document.createElement('canvas');
+    tmp.width = nextW; tmp.height = nextH;
+    const tmpCtx = tmp.getContext('2d');
+    tmpCtx.imageSmoothingEnabled = true;
+    tmpCtx.imageSmoothingQuality = 'high';
+    tmpCtx.drawImage(curCanvas, 0, 0, nextW, nextH);
+    curCanvas = tmp; curW = nextW; curH = nextH;
   }
 
   const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = w;
-  tempCanvas.height = h;
+  tempCanvas.width = w; tempCanvas.height = h;
   const tempCtx = tempCanvas.getContext('2d');
   tempCtx.imageSmoothingEnabled = true;
   tempCtx.imageSmoothingQuality = 'high';
-  tempCtx.drawImage(img, 0, 0, w, h);
+  tempCtx.drawImage(curCanvas, 0, 0, w, h);
 
   const imageData = tempCtx.getImageData(0, 0, w, h);
   const data = imageData.data;
   const step = 255 / (LEVELS - 1);
   const matrix = [];
+
   for (let y = 0; y < h; y++) {
     const row = [];
     for (let x = 0; x < w; x++) {
       const idx = (y * w + x) * 4;
-      const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+      const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       let val = Math.round(gray / step);
       val = Math.min(Math.max(val, 0), LEVELS - 1);
       row.push(val);
     }
     matrix.push(row);
   }
+
   currentMatrix = matrix;
   currentWidth = w;
   currentHeight = h;
   redraw();
+  resetView();
   updateStats();
+  renderStats();
+
   const totalW = (w * cellSizeMm / 10).toFixed(1);
   const totalH = (h * cellSizeMm / 10).toFixed(1);
-  statusMsg.textContent = `✅ Готово: ${w}×${h} пикселей → картина ${totalW} × ${totalH} см`;
+  statusMsg.textContent = `✅ Готово: ${w}×${h} • ${LEVELS} оттенков → ${totalW} × ${totalH} см`;
 }
 
 function redraw() {
@@ -236,17 +625,21 @@ function redraw() {
   drawPixelMatrix(currentMatrix, currentWidth, currentHeight);
 }
 
-function drawPixelMatrix(matrix, w, h) {
-  // ===== РАЗМЕР ЯЧЕЙКИ НА ЭКРАНЕ =====
-  const cellPx = Math.max(10, Math.min(90, cellSizeMm * 2.5));
-  const fontSize = Math.max(9, Math.floor(cellPx * 0.5));
-  const topPad = showTop.checked ? Math.max(28, cellPx + 6) : 6;
-  const leftPad = showLeft.checked ? Math.max(34, cellPx + 14) : 6;
-  const rightPad = 6;
-  const bottomPad = 6;
+function autoStep(userStep, cellPx) {
+  const base = Math.max(1, parseInt(userStep) || 1);
+  if (base > 1) return base;
+  if (cellPx >= 16) return 1;
+  return Math.ceil(16 / cellPx);
+}
 
-  const canvasW = leftPad + w * cellPx + rightPad;
-  const canvasH = topPad + h * cellPx + bottomPad;
+function drawPixelMatrix(matrix, w, h) {
+  // cellPx растёт линейно от мм: 2px на 1 мм.
+  // При 50 мм = 100px. Без верхнего потолка, но и без раздувания.
+  const cellPx = Math.max(16, cellSizeMm * 2);
+  const topPad = showTop.checked ? Math.max(30, cellPx + 8) : 6;
+  const leftPad = showLeft.checked ? Math.max(36, cellPx + 16) : 6;
+  const canvasW = leftPad + w * cellPx + 6;
+  const canvasH = topPad + h * cellPx + 6;
 
   canvas.width = canvasW;
   canvas.height = canvasH;
@@ -262,7 +655,10 @@ function drawPixelMatrix(matrix, w, h) {
     palette.push(`rgb(${v},${v},${v})`);
   }
 
-  // ===== ЯЧЕЙКИ =====
+  // Шрифт цифр = 62% клетки, минимум 11, БЕЗ потолка
+  let fontSize = Math.floor(cellPx * 0.62);
+  if (fontSize < 11) fontSize = 11;
+
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const val = matrix[y][x];
@@ -272,37 +668,58 @@ function drawPixelMatrix(matrix, w, h) {
       ctx.fillStyle = palette[val];
       ctx.fillRect(px, py, cellPx, cellPx);
 
-      ctx.strokeStyle = '#999999';
+      ctx.strokeStyle = 'rgba(120,120,120,0.5)';
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 0.5, py + 0.5, cellPx - 1, cellPx - 1);
 
-      // Цифра в ячейке
-      if (showDigits.checked && cellPx >= 16) {
+      if (showDigits.checked) {
         const brightness = val * (255 / (LEVELS - 1));
-        ctx.fillStyle = brightness < 128 ? '#ffffff' : '#000000';
-        ctx.font = `bold ${fontSize}px Arial`;
+        const textColor = brightness < 128 ? '#ffffff' : '#000000';
+        const outlineColor = brightness < 128 ? '#000000' : '#ffffff';
+        const cx = px + cellPx / 2;
+        const cy = py + cellPx / 2 + fontSize * 0.05;
+
+        ctx.font = `900 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(val, px + cellPx / 2, py + cellPx / 2);
+
+        ctx.lineWidth = Math.max(2, fontSize * 0.16);
+        ctx.strokeStyle = outlineColor;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(val, cx, cy);
+
+        ctx.fillStyle = textColor;
+        ctx.fillText(val, cx, cy);
       }
     }
   }
 
   // ===== ВЕРХНЯЯ НУМЕРАЦИЯ =====
   if (showTop.checked) {
-    const step = Math.max(1, parseInt(stepTop.value) || 1);
-    const topFontSize = Math.max(9, Math.min(14, Math.floor(cellPx * 0.4)));
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${topFontSize}px Arial`;
+    const step = autoStep(stepTop.value, cellPx);
+    const topFontSize = Math.max(14, Math.floor(cellPx * 0.55));
+
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(leftPad, 0, w * cellPx, topPad);
+
+    ctx.font = `bold ${topFontSize}px 'Segoe UI', Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+
     for (let x = 0; x < w; x++) {
       const num = x + 1;
       if (num % step !== 0 && num !== 1 && num !== w) continue;
       const px = leftPad + x * cellPx + cellPx / 2;
-      ctx.fillText(num.toString(), px, topPad / 2);
+      const py = topPad / 2;
+
+      const tw = ctx.measureText(num.toString()).width + 8;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px - tw / 2, py - topFontSize * 0.75, tw, topFontSize * 1.5);
+
+      ctx.fillStyle = '#000000';
+      ctx.fillText(num.toString(), px, py);
     }
-    // Верхняя линия
+
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -313,19 +730,30 @@ function drawPixelMatrix(matrix, w, h) {
 
   // ===== ЛЕВАЯ НУМЕРАЦИЯ =====
   if (showLeft.checked) {
-    const step = Math.max(1, parseInt(stepLeft.value) || 1);
-    const leftFontSize = Math.max(9, Math.min(14, Math.floor(cellPx * 0.4)));
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${leftFontSize}px Arial`;
+    const step = autoStep(stepLeft.value, cellPx);
+    const leftFontSize = Math.max(14, Math.floor(cellPx * 0.55));
+
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(0, topPad, leftPad, h * cellPx);
+
+    ctx.font = `bold ${leftFontSize}px 'Segoe UI', Arial, sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
+
     for (let y = 0; y < h; y++) {
       const num = y + 1;
       if (num % step !== 0 && num !== 1 && num !== h) continue;
+      const px = leftPad - 8;
       const py = topPad + y * cellPx + cellPx / 2;
-      ctx.fillText(num.toString(), leftPad - 6, py);
+
+      const tw = ctx.measureText(num.toString()).width + 8;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px - tw, py - leftFontSize * 0.75, tw, leftFontSize * 1.5);
+
+      ctx.fillStyle = '#000000';
+      ctx.fillText(num.toString(), px, py);
     }
-    // Левая линия
+
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -347,12 +775,114 @@ function updateStats() {
   const totalW = (currentWidth * cellSizeMm / 10).toFixed(1);
   const totalH = (currentHeight * cellSizeMm / 10).toFixed(1);
   totalSizeDisplay.textContent = `${totalW} × ${totalH} см`;
-  cellDisplay.textContent = (currentWidth * currentHeight).toLocaleString();
+  levelsDisplay.textContent = LEVELS;
+  detailDisplay.textContent = maxPixels;
 }
 
+function countDigits(matrix) {
+  const counts = new Array(LEVELS).fill(0);
+  for (let y = 0; y < matrix.length; y++) {
+    for (let x = 0; x < matrix[y].length; x++) {
+      counts[matrix[y][x]]++;
+    }
+  }
+  return counts;
+}
+
+function renderStats() {
+  if (!currentMatrix) { statsPanel.style.display = 'none'; return; }
+  const counts = countDigits(currentMatrix);
+  const total = currentWidth * currentHeight;
+
+  const palette = [];
+  for (let i = 0; i < LEVELS; i++) {
+    const v = Math.round(i * (255 / (LEVELS - 1)));
+    palette.push(`rgb(${v},${v},${v})`);
+  }
+
+  let html = '';
+  for (let i = 0; i < LEVELS; i++) {
+    if (counts[i] === 0) continue;
+    const pct = (counts[i] / total * 100).toFixed(1);
+    html += `<span style="display:inline-block; margin:4px 10px 4px 0;">
+      <span style="display:inline-block; width:14px; height:14px; background:${palette[i]}; border:1px solid #555; vertical-align:middle; border-radius:3px;"></span>
+      <b style="color:#00ff88;">${i}</b> — ${counts[i]} (${pct}%)
+    </span>`;
+  }
+  html += `<div style="margin-top:10px; color:#888;">Всего: ${total} • Оттенков: ${counts.filter(c => c > 0).length} из ${LEVELS}</div>`;
+
+  const compact = counts.map((c, i) => c > 0 ? `${i}-${c}` : null).filter(Boolean).join('  ');
+  html += `<div class="stats-compact">${compact}</div>`;
+
+  statsList.innerHTML = html;
+  statsPanel.style.display = 'block';
+}
+
+// ===== ВИД =====
+function applyView() {
+  canvasStage.style.transform = `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})`;
+}
+
+// Комфортный стартовый вид: 1 клетка ≈ 40px на экране.
+// При 10 мм (клетка 20px) scale = 2. При 50 мм (клетка 100px) scale = 0.4.
+// Не мельче 0.2 и не крупнее 3.
+function resetView() {
+  if (!canvas.width || !canvas.height) return;
+  const cellPx = Math.max(16, cellSizeMm * 2);
+  let startScale = 40 / cellPx;
+  startScale = Math.max(0.2, Math.min(3, startScale));
+
+  view.scale = startScale;
+  view.tx = (canvasWrapper.clientWidth  - canvas.width  * startScale) / 2;
+  view.ty = (canvasWrapper.clientHeight - canvas.height * startScale) / 2;
+  applyView();
+}
+
+// ===== ЗУМ =====
+canvasWrapper.addEventListener('wheel', (e) => {
+  if (!currentMatrix) return;
+  e.preventDefault();
+  const rect = canvasWrapper.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const delta = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+  // Зум до 40× — можно залезть в любую цифру
+  const newScale = Math.max(0.05, Math.min(40, view.scale * delta));
+  const px = (mx - view.tx) / view.scale;
+  const py = (my - view.ty) / view.scale;
+  view.scale = newScale;
+  view.tx = mx - px * newScale;
+  view.ty = my - py * newScale;
+  applyView();
+}, { passive: false });
+
+// ===== ПЕРЕТАСКИВАНИЕ =====
+let isPanning = false;
+let panStartX = 0, panStartY = 0, panStartTx = 0, panStartTy = 0;
+
+canvasWrapper.addEventListener('mousedown', (e) => {
+  if (!currentMatrix || e.button !== 0) return;
+  isPanning = true;
+  canvasWrapper.classList.add('panning');
+  panStartX = e.clientX; panStartY = e.clientY;
+  panStartTx = view.tx; panStartTy = view.ty;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', (e) => {
+  if (!isPanning) return;
+  view.tx = panStartTx + (e.clientX - panStartX);
+  view.ty = panStartTy + (e.clientY - panStartY);
+  applyView();
+});
+window.addEventListener('mouseup', () => {
+  if (isPanning) { isPanning = false; canvasWrapper.classList.remove('panning'); }
+});
+
+// ===== КНОПКИ =====
 printBtn.addEventListener('click', () => {
   if (!currentMatrix) { statusMsg.textContent = '⚠️ Сначала загрузи фото'; return; }
-  window.print();
+  resetView();
+  setTimeout(() => window.print(), 100);
 });
 
 saveBtn.addEventListener('click', () => {
@@ -361,7 +891,7 @@ saveBtn.addEventListener('click', () => {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `matrix_${currentWidth}x${currentHeight}.txt`;
+  a.download = `raskvadras_${currentWidth}x${currentHeight}.txt`;
   a.click();
   URL.revokeObjectURL(a.href);
 });
@@ -370,7 +900,7 @@ copyBtn.addEventListener('click', () => {
   if (!currentMatrix) { statusMsg.textContent = '⚠️ Сначала загрузи фото'; return; }
   const text = currentMatrix.map(r => r.join(' ')).join('\n');
   navigator.clipboard.writeText(text).then(() => {
-    statusMsg.textContent = '📋 Матрица скопирована';
+    statusMsg.textContent = '📋 Скопировано';
   }).catch(() => { statusMsg.textContent = '❌ Не удалось скопировать'; });
 });
 
@@ -378,11 +908,19 @@ clearBtn.addEventListener('click', () => {
   currentMatrix = null; currentWidth = 0; currentHeight = 0; originalImage = null;
   canvas.width = 0; canvas.height = 0;
   sizeDisplay.textContent = '0×0';
-  cellSizeDisplay.textContent = '0';
+  cellSizeDisplay.textContent = '10';
   totalSizeDisplay.textContent = '0 × 0 см';
-  cellDisplay.textContent = '0';
+  levelsDisplay.textContent = LEVELS;
+  detailDisplay.textContent = maxPixels;
   statusMsg.textContent = '🧹 Очищено';
   fileInput.value = '';
+  statsPanel.style.display = 'none';
+  view = { scale: 1, tx: 0, ty: 0 };
+  applyView();
+});
+
+window.addEventListener('resize', () => {
+  if (currentMatrix) resetView();
 });
 </script>
 </body>
