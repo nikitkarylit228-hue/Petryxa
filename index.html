@@ -3,19 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pixelizer Pro — мм / размер / печать</title>
+<title>Pixelizer Pro — финал</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#0a0a0a; color:#eee; font-family:'Segoe UI',system-ui,sans-serif; padding:16px; }
   .app { max-width:1600px; margin:0 auto; background:#141414; border-radius:24px; padding:24px; border:1px solid #2a2a2a; }
   h1 { color:#00ff88; font-weight:600; font-size:24px; margin-bottom:16px; }
   h1 span { color:#444; font-weight:300; }
-  .controls { display:flex; flex-wrap:wrap; gap:20px; align-items:center; background:#1a1a1a; padding:14px 18px; border-radius:16px; border:1px solid #2a2a2a; margin-bottom:20px; }
+  .controls { display:flex; flex-wrap:wrap; gap:16px; align-items:center; background:#1a1a1a; padding:14px 18px; border-radius:16px; border:1px solid #2a2a2a; margin-bottom:12px; }
   .controls label { color:#aaa; font-size:13px; display:flex; align-items:center; gap:8px; }
-  .controls input[type="number"] { width:90px; background:#0d0d0d; color:#00ff88; border:1px solid #333; border-radius:8px; padding:6px 10px; font-size:14px; }
+  .controls input[type="number"] { width:80px; background:#0d0d0d; color:#00ff88; border:1px solid #333; border-radius:8px; padding:6px 10px; font-size:14px; }
   .controls input[type="range"] { width:220px; accent-color:#00ff88; }
+  .controls input[type="checkbox"] { accent-color:#00ff88; width:16px; height:16px; }
   .controls .value { color:#00ff88; font-weight:bold; min-width:70px; font-size:15px; }
-  .upload-zone { border:2px dashed #2a2a2a; border-radius:20px; padding:30px; text-align:center; cursor:pointer; transition:0.3s; background:#0d0d0d; margin-bottom:20px; }
+  .upload-zone { border:2px dashed #2a2a2a; border-radius:20px; padding:24px; text-align:center; cursor:pointer; transition:0.3s; background:#0d0d0d; margin-bottom:20px; }
   .upload-zone:hover { border-color:#00ff88; background:#151515; }
   .upload-zone p { color:#888; font-size:16px; }
   .upload-zone small { color:#444; font-size:12px; }
@@ -35,6 +36,7 @@
   .btn-print { background:#002244; border-color:#003366; }
   .btn-print:hover { background:#00aaff; color:#fff; border-color:#00aaff; }
   .status { color:#666; font-size:13px; text-align:center; margin-top:12px; padding:10px; background:#0d0d0d; border-radius:12px; }
+  .section-title { color:#00ff88; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; opacity:0.7; }
   @media print {
     body { background:#fff; color:#000; padding:0; margin:0; }
     .app { background:#fff; border:none; padding:0; max-width:100%; border-radius:0; }
@@ -47,19 +49,42 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>◈ PIXELIZER <span>PRO — мм / размер / печать</span></h1>
+    <h1>◈ PIXELIZER <span>PRO — финал</span></h1>
   </div>
 
+  <div class="section-title">⚙️ Основные настройки</div>
   <div class="controls">
     <label>📏 Размер пикселя (мм): 
       <input type="range" id="sizeSlider" min="1" max="50" step="1" value="10">
       <span class="value" id="sizeValue">10 мм</span>
     </label>
-    <label>🔍 Детализация (пикселей по длинной стороне): 
+    <label>🔍 Детализация: 
       <input type="number" id="detailInput" min="10" max="150" value="60">
     </label>
     <label>🎨 Уровней серого: 
       <input type="number" id="levelsInput" min="2" max="16" value="8">
+    </label>
+  </div>
+
+  <div class="section-title">🔢 Нумерация</div>
+  <div class="controls">
+    <label>
+      <input type="checkbox" id="showTop" checked> 
+      Верхняя (столбцы)
+    </label>
+    <label>Шаг верх: 
+      <input type="number" id="stepTop" min="1" max="50" value="1">
+    </label>
+    <label>
+      <input type="checkbox" id="showLeft" checked> 
+      Левая (строки)
+    </label>
+    <label>Шаг лево: 
+      <input type="number" id="stepLeft" min="1" max="50" value="1">
+    </label>
+    <label>
+      <input type="checkbox" id="showDigits" checked> 
+      Цифры в ячейках
     </label>
   </div>
 
@@ -76,8 +101,8 @@
   <div class="info-bar">
     <span class="stat">📐 Пикселей: <span class="val" id="sizeDisplay">0×0</span></span>
     <span class="stat">📏 1 пиксель = <span class="val" id="cellSizeDisplay">10</span> мм</span>
-    <span class="stat">📦 Реальный размер: <span class="val" id="totalSizeDisplay">0 × 0 см</span></span>
-    <span class="stat">🔢 Всего ячеек: <span class="val" id="cellDisplay">0</span></span>
+    <span class="stat">📦 Размер картины: <span class="val" id="totalSizeDisplay">0 × 0 см</span></span>
+    <span class="stat">🔢 Ячеек: <span class="val" id="cellDisplay">0</span></span>
     <div class="btn-group">
       <button class="btn btn-print" id="printBtn">🖨️ Печать</button>
       <button class="btn btn-primary" id="saveBtn">💾 Скачать .txt</button>
@@ -86,7 +111,7 @@
     </div>
   </div>
 
-  <div class="status" id="statusMsg">⚡ Загрузи фото → настрой размер пикселя в мм</div>
+  <div class="status" id="statusMsg">⚡ Загрузи фото → настрой всё под себя</div>
 </div>
 
 <script>
@@ -95,6 +120,9 @@ const fileInput = $('fileInput'), uploadZone = $('uploadZone');
 const canvas = $('pixelCanvas'), ctx = canvas.getContext('2d');
 const sizeSlider = $('sizeSlider'), sizeValue = $('sizeValue');
 const detailInput = $('detailInput'), levelsInput = $('levelsInput');
+const showTop = $('showTop'), stepTop = $('stepTop');
+const showLeft = $('showLeft'), stepLeft = $('stepLeft');
+const showDigits = $('showDigits');
 const sizeDisplay = $('sizeDisplay'), cellSizeDisplay = $('cellSizeDisplay');
 const totalSizeDisplay = $('totalSizeDisplay'), cellDisplay = $('cellDisplay');
 const statusMsg = $('statusMsg');
@@ -107,25 +135,35 @@ let LEVELS = 8;
 let maxPixels = 60;
 let originalImage = null;
 
-// ===== ИЗМЕНЕНИЕ РАЗМЕРА ПИКСЕЛЯ =====
+// ===== ОБРАБОТЧИКИ =====
 sizeSlider.addEventListener('input', () => {
   cellSizeMm = parseFloat(sizeSlider.value);
   sizeValue.textContent = cellSizeMm + ' мм';
   if (currentMatrix) redraw();
 });
 
-// ===== ДЕТАЛИЗАЦИЯ =====
 detailInput.addEventListener('change', () => {
   maxPixels = Math.max(10, Math.min(150, parseInt(detailInput.value) || 60));
   detailInput.value = maxPixels;
   if (originalImage) processImage(originalImage);
 });
 
-// ===== УРОВНИ СЕРОГО =====
 levelsInput.addEventListener('change', () => {
   LEVELS = Math.max(2, Math.min(16, parseInt(levelsInput.value) || 8));
   levelsInput.value = LEVELS;
   if (originalImage) processImage(originalImage);
+});
+
+showTop.addEventListener('change', () => { if (currentMatrix) redraw(); });
+showLeft.addEventListener('change', () => { if (currentMatrix) redraw(); });
+showDigits.addEventListener('change', () => { if (currentMatrix) redraw(); });
+stepTop.addEventListener('change', () => {
+  stepTop.value = Math.max(1, Math.min(50, parseInt(stepTop.value) || 1));
+  if (currentMatrix) redraw();
+});
+stepLeft.addEventListener('change', () => {
+  stepLeft.value = Math.max(1, Math.min(50, parseInt(stepLeft.value) || 1));
+  if (currentMatrix) redraw();
 });
 
 uploadZone.addEventListener('click', () => fileInput.click());
@@ -188,7 +226,9 @@ function processImage(img) {
   currentHeight = h;
   redraw();
   updateStats();
-  statusMsg.textContent = `✅ Готово: ${w}×${h} пикселей (${(w*cellSizeMm/10).toFixed(1)} × ${(h*cellSizeMm/10).toFixed(1)} см)`;
+  const totalW = (w * cellSizeMm / 10).toFixed(1);
+  const totalH = (h * cellSizeMm / 10).toFixed(1);
+  statusMsg.textContent = `✅ Готово: ${w}×${h} пикселей → картина ${totalW} × ${totalH} см`;
 }
 
 function redraw() {
@@ -197,15 +237,16 @@ function redraw() {
 }
 
 function drawPixelMatrix(matrix, w, h) {
-  // Размер ячейки на экране: зависит от cellSizeMm, но ограничен
-  const cellPx = Math.max(8, Math.min(80, cellSizeMm * 2.5));
+  // ===== РАЗМЕР ЯЧЕЙКИ НА ЭКРАНЕ =====
+  const cellPx = Math.max(10, Math.min(90, cellSizeMm * 2.5));
+  const fontSize = Math.max(9, Math.floor(cellPx * 0.5));
+  const topPad = showTop.checked ? Math.max(28, cellPx + 6) : 6;
+  const leftPad = showLeft.checked ? Math.max(34, cellPx + 14) : 6;
+  const rightPad = 6;
+  const bottomPad = 6;
 
-  // Отступ для номеров
-  const padding = Math.max(40, cellPx + 10);
-  const fontSize = Math.max(10, Math.floor(cellPx * 0.5));
-
-  const canvasW = padding + w * cellPx;
-  const canvasH = padding + h * cellPx;
+  const canvasW = leftPad + w * cellPx + rightPad;
+  const canvasH = topPad + h * cellPx + bottomPad;
 
   canvas.width = canvasW;
   canvas.height = canvasH;
@@ -225,55 +266,84 @@ function drawPixelMatrix(matrix, w, h) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const val = matrix[y][x];
-      const px = padding + x * cellPx;
-      const py = padding + y * cellPx;
+      const px = leftPad + x * cellPx;
+      const py = topPad + y * cellPx;
 
       ctx.fillStyle = palette[val];
       ctx.fillRect(px, py, cellPx, cellPx);
 
-      // Тонкая рамка
       ctx.strokeStyle = '#999999';
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 0.5, py + 0.5, cellPx - 1, cellPx - 1);
 
-      // Цифра внутри ячейки
-      const brightness = val * (255 / (LEVELS - 1));
-      ctx.fillStyle = brightness < 128 ? '#ffffff' : '#000000';
-      ctx.font = `bold ${fontSize}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(val, px + cellPx / 2, py + cellPx / 2);
+      // Цифра в ячейке
+      if (showDigits.checked && cellPx >= 16) {
+        const brightness = val * (255 / (LEVELS - 1));
+        ctx.fillStyle = brightness < 128 ? '#ffffff' : '#000000';
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(val, px + cellPx / 2, py + cellPx / 2);
+      }
     }
   }
 
-  // ===== НОМЕРА СТОЛБЦОВ СВЕРХУ =====
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.max(10, Math.floor(fontSize * 0.85))}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  for (let x = 0; x < w; x++) {
-    const px = padding + x * cellPx + cellPx / 2;
-    ctx.fillText((x + 1).toString(), px, padding / 2);
+  // ===== ВЕРХНЯЯ НУМЕРАЦИЯ =====
+  if (showTop.checked) {
+    const step = Math.max(1, parseInt(stepTop.value) || 1);
+    const topFontSize = Math.max(9, Math.min(14, Math.floor(cellPx * 0.4)));
+    ctx.fillStyle = '#000000';
+    ctx.font = `bold ${topFontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let x = 0; x < w; x++) {
+      const num = x + 1;
+      if (num % step !== 0 && num !== 1 && num !== w) continue;
+      const px = leftPad + x * cellPx + cellPx / 2;
+      ctx.fillText(num.toString(), px, topPad / 2);
+    }
+    // Верхняя линия
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(leftPad, topPad);
+    ctx.lineTo(leftPad + w * cellPx, topPad);
+    ctx.stroke();
   }
 
-  // ===== НОМЕРА СТРОК СЛЕВА =====
-  ctx.textAlign = 'right';
-  for (let y = 0; y < h; y++) {
-    const py = padding + y * cellPx + cellPx / 2;
-    ctx.fillText((y + 1).toString(), padding - 6, py);
+  // ===== ЛЕВАЯ НУМЕРАЦИЯ =====
+  if (showLeft.checked) {
+    const step = Math.max(1, parseInt(stepLeft.value) || 1);
+    const leftFontSize = Math.max(9, Math.min(14, Math.floor(cellPx * 0.4)));
+    ctx.fillStyle = '#000000';
+    ctx.font = `bold ${leftFontSize}px Arial`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let y = 0; y < h; y++) {
+      const num = y + 1;
+      if (num % step !== 0 && num !== 1 && num !== h) continue;
+      const py = topPad + y * cellPx + cellPx / 2;
+      ctx.fillText(num.toString(), leftPad - 6, py);
+    }
+    // Левая линия
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(leftPad, topPad);
+    ctx.lineTo(leftPad, topPad + h * cellPx);
+    ctx.stroke();
   }
 
   // ===== ВНЕШНЯЯ РАМКА =====
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 3;
-  ctx.strokeRect(padding, padding, w * cellPx, h * cellPx);
+  ctx.strokeRect(leftPad, topPad, w * cellPx, h * cellPx);
 }
 
 function updateStats() {
   if (!currentMatrix) return;
   sizeDisplay.textContent = `${currentWidth}×${currentHeight}`;
   cellSizeDisplay.textContent = cellSizeMm;
-  // Реальный размер в сантиметрах
   const totalW = (currentWidth * cellSizeMm / 10).toFixed(1);
   const totalH = (currentHeight * cellSizeMm / 10).toFixed(1);
   totalSizeDisplay.textContent = `${totalW} × ${totalH} см`;
