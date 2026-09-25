@@ -37,12 +37,10 @@
   .btn-print:hover { background:#00aaff; color:#fff; border-color:#00aaff; }
   .status { color:#666; font-size:13px; text-align:center; margin-top:12px; padding:10px; background:#0d0d0d; border-radius:12px; }
   .section-title { color:#00ff88; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; opacity:0.7; }
-  .size-preview { color:#fff; background:#002211; padding:10px 18px; border-radius:12px; border:1px solid #004422; font-size:15px; margin-top:6px; }
-  .size-preview .val { color:#00ff88; font-weight:bold; font-size:20px; }
   @media print {
     body { background:#fff; color:#000; padding:0; margin:0; }
     .app { background:#fff; border:none; padding:0; max-width:100%; border-radius:0; }
-    .header, .controls, .upload-zone, .info-bar, .status, .size-preview, .section-title { display:none !important; }
+    .header, .controls, .upload-zone, .info-bar, .status, .section-title { display:none !important; }
     .canvas-wrapper { background:#fff; border:none; padding:0; border-radius:0; overflow:visible; }
     #pixelCanvas { width:auto; height:auto; max-width:100%; page-break-inside:avoid; border-radius:0; }
   }
@@ -54,14 +52,25 @@
     <h1>◈ PIXELIZER <span>PRO — финал</span></h1>
   </div>
 
-  <div class="section-title">⚙️ Основные настройки</div>
+  <div class="section-title">📐 Рядность (кол-во пикселей)</div>
+  <div class="controls">
+    <label>➡️ В бок (ширина): 
+      <input type="number" id="widthPixels" min="5" max="200" value="60">
+    </label>
+    <label>⬇️ Вниз (высота): 
+      <input type="number" id="heightPixels" min="5" max="200" value="60">
+    </label>
+    <label>
+      <input type="checkbox" id="keepRatio" checked> 
+      Сохранять пропорции
+    </label>
+  </div>
+
+  <div class="section-title">⚙️ Остальные настройки</div>
   <div class="controls">
     <label>📏 Размер пикселя (мм): 
       <input type="range" id="sizeSlider" min="1" max="50" step="1" value="10">
       <span class="value" id="sizeValue">10 мм</span>
-    </label>
-    <label>🔍 Детализация: 
-      <input type="number" id="detailInput" min="10" max="150" value="60">
     </label>
     <label>🎨 Уровней серого: 
       <input type="number" id="levelsInput" min="2" max="16" value="8">
@@ -87,14 +96,10 @@
     <canvas id="pixelCanvas"></canvas>
   </div>
 
-  <div class="size-preview" style="text-align:center;">
-    📦 <strong>Реальный размер картины:</strong> 
-    <span class="val" id="realSize">— × — см</span>
-  </div>
-
   <div class="info-bar">
     <span class="stat">📐 Пикселей: <span class="val" id="sizeDisplay">0×0</span></span>
     <span class="stat">📏 1 пиксель = <span class="val" id="cellSizeDisplay">10</span> мм</span>
+    <span class="stat">📦 Размер картины: <span class="val" id="totalSizeDisplay">0 × 0 см</span></span>
     <span class="stat">🔢 Ячеек: <span class="val" id="cellDisplay">0</span></span>
     <div class="btn-group">
       <button class="btn btn-print" id="printBtn">🖨️ Печать</button>
@@ -104,20 +109,22 @@
     </div>
   </div>
 
-  <div class="status" id="statusMsg">⚡ Загрузи фото → настрой всё под себя</div>
+  <div class="status" id="statusMsg">⚡ Загрузи фото → настрой рядность и размер пикселя</div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
 const fileInput = $('fileInput'), uploadZone = $('uploadZone');
 const canvas = $('pixelCanvas'), ctx = canvas.getContext('2d');
+const widthPixels = $('widthPixels'), heightPixels = $('heightPixels');
+const keepRatio = $('keepRatio');
 const sizeSlider = $('sizeSlider'), sizeValue = $('sizeValue');
-const detailInput = $('detailInput'), levelsInput = $('levelsInput');
+const levelsInput = $('levelsInput');
 const showTop = $('showTop'), stepTop = $('stepTop');
 const showLeft = $('showLeft'), stepLeft = $('stepLeft');
 const showDigits = $('showDigits');
 const sizeDisplay = $('sizeDisplay'), cellSizeDisplay = $('cellSizeDisplay');
-const realSize = $('realSize'), cellDisplay = $('cellDisplay');
+const totalSizeDisplay = $('totalSizeDisplay'), cellDisplay = $('cellDisplay');
 const statusMsg = $('statusMsg');
 const printBtn = $('printBtn'), saveBtn = $('saveBtn'), copyBtn = $('copyBtn'), clearBtn = $('clearBtn');
 
@@ -125,28 +132,42 @@ let currentMatrix = null;
 let currentWidth = 0, currentHeight = 0;
 let cellSizeMm = 10;
 let LEVELS = 8;
-let maxPixels = 60;
 let originalImage = null;
+let originalRatio = 1;
 
-// ===== ФИКСИРОВАННЫЙ РАЗМЕР ЯЧЕЙКИ НА ЭКРАНЕ =====
-// На экране ячейка всегда ~24 px, независимо от реального размера
-const CELL_PX = 24;
-
-// ===== ПОЛЗУНОК РАЗМЕРА ПИКСЕЛЯ =====
+// ===== РАЗМЕР ПИКСЕЛЯ =====
 sizeSlider.addEventListener('input', () => {
   cellSizeMm = parseFloat(sizeSlider.value);
   sizeValue.textContent = cellSizeMm + ' мм';
-  // НЕ перерисовываем, только обновляем цифры
-  updateStats();
+  if (currentMatrix) redraw();
 });
 
-// ===== ОСТАЛЬНЫЕ ОБРАБОТЧИКИ =====
-detailInput.addEventListener('change', () => {
-  maxPixels = Math.max(10, Math.min(150, parseInt(detailInput.value) || 60));
-  detailInput.value = maxPixels;
+// ===== ШИРИНА =====
+widthPixels.addEventListener('change', () => {
+  widthPixels.value = Math.max(5, Math.min(200, parseInt(widthPixels.value) || 60));
+  if (keepRatio.checked && originalRatio > 0) {
+    heightPixels.value = Math.max(5, Math.min(200, Math.round(widthPixels.value / originalRatio)));
+  }
   if (originalImage) processImage(originalImage);
 });
 
+// ===== ВЫСОТА =====
+heightPixels.addEventListener('change', () => {
+  heightPixels.value = Math.max(5, Math.min(200, parseInt(heightPixels.value) || 60));
+  if (keepRatio.checked && originalRatio > 0) {
+    widthPixels.value = Math.max(5, Math.min(200, Math.round(heightPixels.value * originalRatio)));
+  }
+  if (originalImage) processImage(originalImage);
+});
+
+keepRatio.addEventListener('change', () => {
+  if (keepRatio.checked && originalImage) {
+    heightPixels.value = Math.max(5, Math.min(200, Math.round(widthPixels.value / originalRatio)));
+    processImage(originalImage);
+  }
+});
+
+// ===== ОСТАЛЬНЫЕ =====
 levelsInput.addEventListener('change', () => {
   LEVELS = Math.max(2, Math.min(16, parseInt(levelsInput.value) || 8));
   levelsInput.value = LEVELS;
@@ -180,22 +201,24 @@ function handleFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
-    img.onload = () => { originalImage = img; processImage(img); };
+    img.onload = () => {
+      originalImage = img;
+      originalRatio = img.width / img.height;
+      // Задать начальную ширину, чтобы было красиво
+      if (keepRatio.checked) {
+        widthPixels.value = 60;
+        heightPixels.value = Math.max(5, Math.min(200, Math.round(60 / originalRatio)));
+      }
+      processImage(img);
+    };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 function processImage(img) {
-  const ratio = img.width / img.height;
-  let w, h;
-  if (img.width >= img.height) {
-    w = maxPixels;
-    h = Math.round(maxPixels / ratio);
-  } else {
-    h = maxPixels;
-    w = Math.round(maxPixels * ratio);
-  }
+  let w = parseInt(widthPixels.value) || 60;
+  let h = parseInt(heightPixels.value) || 60;
 
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = w;
@@ -225,7 +248,9 @@ function processImage(img) {
   currentHeight = h;
   redraw();
   updateStats();
-  statusMsg.textContent = `✅ Готово: ${w}×${h} пикселей`;
+  const totalW = (w * cellSizeMm / 10).toFixed(1);
+  const totalH = (h * cellSizeMm / 10).toFixed(1);
+  statusMsg.textContent = `✅ ${w}×${h} пикселей → картина ${totalW} × ${totalH} см`;
 }
 
 function redraw() {
@@ -234,10 +259,10 @@ function redraw() {
 }
 
 function drawPixelMatrix(matrix, w, h) {
-  const cellPx = CELL_PX;
-  const fontSize = Math.floor(cellPx * 0.5);
-  const topPad = showTop.checked ? 28 : 6;
-  const leftPad = showLeft.checked ? 34 : 6;
+  const cellPx = Math.max(10, Math.min(90, cellSizeMm * 2.5));
+  const fontSize = Math.max(9, Math.floor(cellPx * 0.5));
+  const topPad = showTop.checked ? Math.max(28, cellPx + 6) : 6;
+  const leftPad = showLeft.checked ? Math.max(34, cellPx + 14) : 6;
   const rightPad = 6;
   const bottomPad = 6;
 
@@ -246,9 +271,8 @@ function drawPixelMatrix(matrix, w, h) {
 
   canvas.width = canvasW;
   canvas.height = canvasH;
-  // НЕ задаём style.width/height — пусть будет натуральный размер с прокруткой
-  canvas.style.width = '';
-  canvas.style.height = '';
+  canvas.style.width = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
 
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvasW, canvasH);
@@ -338,7 +362,7 @@ function updateStats() {
   cellSizeDisplay.textContent = cellSizeMm;
   const totalW = (currentWidth * cellSizeMm / 10).toFixed(1);
   const totalH = (currentHeight * cellSizeMm / 10).toFixed(1);
-  realSize.textContent = `${totalW} × ${totalH} см`;
+  totalSizeDisplay.textContent = `${totalW} × ${totalH} см`;
   cellDisplay.textContent = (currentWidth * currentHeight).toLocaleString();
 }
 
@@ -371,7 +395,7 @@ clearBtn.addEventListener('click', () => {
   canvas.width = 0; canvas.height = 0;
   sizeDisplay.textContent = '0×0';
   cellSizeDisplay.textContent = '0';
-  realSize.textContent = '— × — см';
+  totalSizeDisplay.textContent = '0 × 0 см';
   cellDisplay.textContent = '0';
   statusMsg.textContent = '🧹 Очищено';
   fileInput.value = '';
